@@ -1,70 +1,237 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>가위바위보 게임</title>
+    <style>
+        body {
+            background-color: #f0f2f5;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .container {
+            width: 600px;
+            margin: 30px auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 0 15px gray;
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        .btn-group {
+            margin: 20px 0;
+        }
+
+        button {
+            background: steelblue;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 0 10px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #1f5f99;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #webcam-container {
+            margin: 20px auto;
+            width: 320px;
+            height: 320px;
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 3px solid steelblue;
+        }
+
+        /* 결과 이미지가 출력될 공간 */
+        #result-container {
+            margin-top: 20px;
+            min-height: 220px;
+        }
+
+        #result-img {
+            width: 180px;
+            height: 180px;
+            object-fit: contain;
+            display: none; /* 초기에는 숨김 */
+        }
+
+        #result-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-top: 10px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: steelblue;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-    <div>가위바위보</div>
-<button type="button" onclick="init()">시작하기</button>
-<div id="webcam-container"></div>
-<div id="label-container"></div>
+
+<div class="container">
+    <h1>✊✌️✋ 가위바위보 게임</h1>
+    <p>티쳐블 머신 카메라를 이용해 가위, 바위, 보를 내보세요!</p>
+
+    <div class="btn-group">
+        <button id="start-btn" onclick="init()">시작하기</button>
+        <button id="stop-btn" onclick="stopGame()" disabled>중지하기</button>
+    </div>
+
+    <div id="webcam-container"></div>
+
+    <div id="result-container">
+        <img id="result-img" src="" alt="결과 이미지">
+        <div id="result-text">시작 버튼을 눌러주세요.</div>
+    </div>
+
+    <a href="index.html" class="back-link">← 자기소개 페이지로 돌아가기</a>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
-<script type="text/javascript">
-    // More API functions here:
-    // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
 
-    // the link to your model provided by Teachable Machine export panel
+<script type="text/javascript">
+    // ⚠️ 중요: 본인의 티쳐블 머신 모델 URL 주소로 변경해 주세요!
     const URL = "https://teachablemachine.withgoogle.com/models/7PYNZBJBry/";
 
-    let model, webcam, labelContainer, maxPredictions;
+    let model, webcam, maxPredictions;
+    let isPlaying = false;
+    let loopTimeout;
 
-    // Load the image model and setup the webcam
+    // 가위, 바위, 보 결과에 매칭될 이미지 경로 설정
+    // 본인의 이미지 파일명과 확장자(png, jpg 등)에 맞게 수정하세요.
+    const resultImages = {
+        "가위": "image/scissors.png", 
+        "바위": "image/rock.png",
+        "보": "image/paper.png"
+    };
+
+    // 게임 시작 (시작하기 버튼 클릭시)
     async function init() {
+        if (isPlaying) return;
+        
+        document.getElementById("start-btn").disabled = true;
+        document.getElementById("result-text").innerText = "모델 로딩 중...";
+
         const modelURL = URL + "model.json";
         const metadataURL = URL + "metadata.json";
 
-        // load the model and metadata
-        // Refer to tmImage.loadFromFiles() in the API to support files from a file picker
-        // or files from your local hard drive
-        // Note: the pose library adds "tmImage" object to your window (window.tmImage)
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
+        // 모델 및 웹캠 로드
+        try {
+            if (!model) model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
 
-        // Convenience function to setup a webcam
-        const flip = true; // whether to flip the webcam
-        webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
-        await webcam.setup(); // request access to the webcam
-        await webcam.play();
-        window.requestAnimationFrame(loop);
+            if (!webcam) {
+                const flip = true; // 웹캠 좌우반전 여부
+                webcam = new tmImage.Webcam(320, 320, flip);
+                await webcam.setup(); 
+            }
+            
+            await webcam.play();
+            isPlaying = true;
+            
+            // 웹캠 컨테이너 초기화 후 삽입
+            const webcamContainer = document.getElementById("webcam-container");
+            webcamContainer.innerHTML = "";
+            webcamContainer.appendChild(webcam.canvas);
 
-        // append elements to the DOM
-        document.getElementById("webcam-container").appendChild(webcam.canvas);
-        labelContainer = document.getElementById("label-container");
-        for (let i = 0; i < maxPredictions; i++) { // and class labels
-            labelContainer.appendChild(document.createElement("div"));
+            document.getElementById("stop-btn").disabled = false;
+            document.getElementById("result-text").innerText = "게임 시작! 손을 보여주세요.";
+            
+            // 0.5초 주기의 루프 시작
+            gameLoop();
+
+        } catch (error) {
+            console.error(error);
+            alert("웹캠을 불러오거나 모델을 로드하는 데 실패했습니다.");
+            document.getElementById("start-btn").disabled = false;
+            document.getElementById("result-text").innerText = "에러 발생";
         }
     }
 
-    async function loop() {
-        webcam.update(); // update the webcam frame
-        await predict();
-        window.requestAnimationFrame(loop);
+    // 0.5초마다 실행되는 룹 함수 (요건 반영)
+    async function gameLoop() {
+        if (!isPlaying) return;
+
+        webcam.update(); // 웹캠 프레임 업데이트
+        await predict(); // 예측 수행
+
+        // 500ms(0.5초) 뒤에 다음 예측 실행
+        loopTimeout = setTimeout(gameLoop, 500);
     }
 
-    // run the webcam image through the image model
+    // 예측 및 화면 업데이트
     async function predict() {
-        // predict can take in an image, video or canvas html element
         const prediction = await model.predict(webcam.canvas);
+        
+        let highestClassName = "";
+        let highestProbability = 0;
+
+        // 가장 확률이 높은 클래스(가위/바위/보) 찾기
         for (let i = 0; i < maxPredictions; i++) {
-            const classPrediction =
-                prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-            labelContainer.childNodes[i].innerHTML = classPrediction;
+            if (prediction[i].probability > highestProbability) {
+                highestProbability = prediction[i].probability;
+                highestClassName = prediction[i].className;
+            }
         }
+
+        // 화면 갱신 처리
+        const resultImg = document.getElementById("result-img");
+        const resultText = document.getElementById("result-text");
+
+        if (highestClassName && highestProbability > 0.5) { // 확률이 50% 이상일 때만 인정
+            resultText.innerText = highestClassName; // 확률 수치 없이 글자만 출력 (요건 반영)
+            
+            // 매칭되는 이미지가 있다면 이미지 노출 (요건 반영)
+            if (resultImages[highestClassName]) {
+                resultImg.src = resultImages[highestClassName];
+                resultImg.style.display = "inline-block";
+            } else {
+                resultImg.style.display = "none";
+            }
+        } else {
+            resultText.innerText = "판단 중...";
+            resultImg.style.display = "none";
+        }
+    }
+
+    // 게임 중지 (중지하기 버튼 클릭시)
+    function stopGame() {
+        isPlaying = false;
+        clearTimeout(loopTimeout); // 타이머 클리어
+        
+        if (webcam) {
+            webcam.stop();
+        }
+
+        document.getElementById("start-btn").disabled = false;
+        document.getElementById("stop-btn").disabled = true;
+        document.getElementById("result-text").innerText = "게임이 중지되었습니다.";
+        document.getElementById("result-img").style.display = "none";
     }
 </script>
-
 </body>
 </html>
