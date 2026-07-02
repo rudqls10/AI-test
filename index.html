@@ -35,11 +35,21 @@
             margin-top:30px;
         }
 
-        .profile img{
-            width:180px;
-            height:180px;
-            border-radius:50%;
-            border:5px solid skyblue;
+        /* ✨ 1. 프로필 이미지 단독 스타일 */
+        .profile-img {
+            width: 240px;          
+            height: 400px;         
+            border-radius: 12px;   
+            border: 5px solid skyblue;
+            object-fit: cover;     
+        }
+
+        /* ✨ 2. 설명 이미지 단독 스타일 (여기서 크기를 조절해 보세요!) */
+        .rule-img {
+            width: 400px;          /* 원하는 설명 이미지 가로 크기 */
+            height: auto;          /* 가로 비율에 맞춰 세로는 자동 조절 */
+            margin-top: 15px;      /* 버튼과의 간격 조절 */
+            border-radius: 8px;    /* 선택 사항: 설명 이미지도 모서리를 약간 둥글게 */
         }
 
         .info{
@@ -83,7 +93,7 @@
         button:hover{
             background:#1f5f99;
         }
-
+        
     </style>
 
 </head>
@@ -96,74 +106,58 @@
 
         <div class="profile">
 
-            <img src="image/공유.jpg" alt="프로필 사진">
+            <img src="image/공유.jpg" class="profile-img" alt="프로필 사진">
 
             <div class="info">
 
-                <p><strong>이름</strong> : 홍길동</p>
-                <p><strong>나이</strong> : 30세</p>
+                <p><strong>이름</strong> : 임경빈</p>             
                 <p><strong>직업</strong> : AI 학습자</p>
                 <p><strong>거주지</strong> : 경기도</p>
                 <a href="가위바위보.html">
                     <br>
-    <button>가위바위보 게임</button>
-</a>  
-        <img src="image/rule.png" alt="설명">
+                    <button>가위바위보 게임</button>
+                </a>
+                <br>
+                <img src="image/rule.png" class="rule-img" alt="설명">
             </div>
-
         </div>
 
         <section>
-
             <h2>😊 자기소개</h2>
-
             <p>
                 안녕하세요.<br>
                 HTML과 CSS를 배우고 있으며,<br>
                 Python과 AI 서비스 기획에도 관심이 많습니다.
             </p>
-
         </section>
 
         <section>
-
             <h2>💻 기술</h2>
-
             <ul>
                 <li>HTML</li>
                 <li>CSS</li>
                 <li>Python</li>
                 <li>ChatGPT</li>
             </ul>
-
         </section>
 
         <section>
-
             <h2>🏃 취미</h2>
-
             <ul>
                 <li>🚴 철인3종</li>
                 <li>🏊 수영</li>
                 <li>📈 투자 공부</li>
             </ul>
-
         </section>
 
         <section>
-
             <h2>📞 연락처</h2>
-
-            <p>📧 abc@gmail.com</p>
-
+            <p>📧 grudqls1@gmail.com</p>
             <button>메일 보내기</button>
-
         </section>
 
         <footer>
-
             <p>© 2026 자기소개 페이지</p>
-
         </footer>
 
     </div>
